@@ -5,7 +5,7 @@ class Knight : public Piece {
 public:
     Knight(char c, int row, int col);
 
-    bool isValidMove(int newX, int newY) override;
+    bool isValidMove(int toRow, int toCol, const Board& board) const override;
 
     char getSymbol() override;
 };

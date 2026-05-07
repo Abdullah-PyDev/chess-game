@@ -1,9 +1,10 @@
 #pragma once
+
 #include "Piece.h"
 
-class King : public Piece {
+class Queen : public Piece {
 public:
-    King(char c, int row, int col);
+    Queen(char c, int row, int col);
 
     bool isValidMove(int toRow, int toCol, const Board& board) const override;
 

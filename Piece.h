@@ -1,5 +1,5 @@
 #pragma once
-
+class Board;
 class Piece {
 protected:
     char color;
@@ -8,7 +8,7 @@ protected:
 public:
     Piece(char c, int row, int col);
 
-    virtual bool isValidMove(int newX, int newY) = 0;
+    virtual bool isValidMove(int toRow, int toCol, const Board& board) const = 0;
 
     virtual char getSymbol() = 0;
 
