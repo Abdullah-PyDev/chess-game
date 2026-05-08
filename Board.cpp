@@ -79,3 +79,64 @@ bool Board::movePiece(int Source_row, int source_col, int dest_row, int dest_col
 
     return true;
 }
+bool Board::isCheck(char kingColor)
+{
+    // Find the king's position
+	int kingRow = -1, kingCol = -1;       // Initialize to invalid position
+
+    for (int row = 0; row < 8; row++)
+    {
+        for (int col = 0; col < 8; col++)
+        {
+            Piece* piece = grid[row][col];
+
+            if (piece != nullptr)
+            {
+                if (piece->getColor() == kingColor)
+                {
+                    if (piece->getSymbol() == 'K' || piece->getSymbol() == 'k')
+                    {
+                        kingRow = row;
+                        kingCol = col;
+                        break;
+                    }
+                }
+            }
+        }
+        if (kingRow != -1) 
+        {
+            break; // King found, exit loop
+        }
+    }
+    if (kingRow == -1)
+    {
+        // King not found
+        return false;
+    }
+    // Check if any opponent piece can move to the king's position
+    char opponentColor;
+
+    if (kingColor == 'W')
+    {
+        opponentColor = 'B';
+    }
+    else
+    {
+        opponentColor = 'W';
+    }
+    for (int row = 0; row < 8; row++)
+    {
+        for (int col = 0; col < 8; col++)
+        {
+            Piece* piece = grid[row][col];
+            if (piece != nullptr && piece->getColor() == opponentColor)
+            {
+                if (piece->isValidMove(kingRow, kingCol, *this))
+                {
+                    return true; // King is in check
+                }
+            }
+        }
+    }
+    return false; // King is not in check
+}
