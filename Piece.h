@@ -15,4 +15,7 @@ public:
     char getColor();
 
     void setPosition(int newX, int newY);
+    
+    int getRow() const;
+    int getCol() const;
 };
