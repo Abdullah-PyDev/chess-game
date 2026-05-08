@@ -14,14 +14,10 @@ void Piece::setPosition(int newX, int newY) {
     x = newX;
     y = newY;
 }
-<<<<<<< Piece
+
 int Piece::getRow() const {
     return x;
 }
 int Piece::getCol() const {
     return y; 
 }
-=======
-
-
->>>>>>> master
