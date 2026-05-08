@@ -14,3 +14,5 @@ void Piece::setPosition(int newX, int newY) {
     x = newX;
     y = newY;
 }
+
+

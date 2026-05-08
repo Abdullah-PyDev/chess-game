@@ -219,3 +219,10 @@ bool Board::canEscapeCheck(char kingColor)
     }
     return false; // No move found that escapes check
 }
+int Piece::getRow() const {
+    return x; 
+}
+
+int Piece::getCol() const {
+    return y;
+}
