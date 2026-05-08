@@ -140,3 +140,82 @@ bool Board::isCheck(char kingColor)
     }
     return false; // King is not in check
 }
+bool Board::isCheckmate(char kingColor)
+{
+    // King must be in check first
+    if (!isCheck(kingColor))
+    {
+        return false;
+    }
+
+    // If in check and cannot escape, it is checkmate
+    if (!canEscapeCheck(kingColor))
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool Board::canEscapeCheck(char kingColor)
+{
+    // Loop through every friendly piece
+    for (int fromRow = 0; fromRow < 8; fromRow++)
+    {
+        for (int fromCol = 0; fromCol < 8; fromCol++)
+        {
+            Piece* piece = grid[fromRow][fromCol];
+
+            // Only consider pieces belonging to the player in check
+            if (piece == nullptr)
+            {
+                continue;
+            }
+            if (piece->getColor() != kingColor)
+            {
+                continue;
+            }
+
+            // Try every possible destination square
+            for (int toRow = 0; toRow < 8; toRow++)
+            {
+                for (int toCol = 0; toCol < 8; toCol++)
+                {
+                    Piece* target = grid[toRow][toCol];
+
+                    // Cannot move to a square occupied by own piece
+                    if (target != nullptr && target->getColor() == kingColor)
+                    {
+                        continue;
+                    }
+
+                    // Skip if the piece cannot legally move there
+                    if (!piece->isValidMove(toRow, toCol, *this))
+                    {
+                        continue;
+                    }
+
+                    // --- Simulate the move ---
+                    grid[toRow][toCol] = piece;
+                    grid[fromRow][fromCol] = nullptr;
+                    int oldRow = piece->getRow();
+                    int oldCol = piece->getCol();
+                    piece->setPosition(toRow, toCol);
+
+                    bool stillInCheck = isCheck(kingColor);
+
+                    // --- Undo the move ---
+                    grid[fromRow][fromCol] = piece;
+                    grid[toRow][toCol] = target;
+                    piece->setPosition(oldRow, oldCol);
+
+                    if (!stillInCheck)
+                    {
+                        return true; // This move escapes the check
+                    }
+                }
+            }
+        }
+    }
+    return false; // No move found that escapes check
+}
