@@ -9,15 +9,17 @@ public:
     Board();
     ~Board();
 
-    // Returns piece at given position
     Piece* getPiece(int row, int col) const;
 
-    // Moves piece if move is valid
-    bool movePiece(int fromRow, int fromCol, int toRow, int toCol);
+    void setPiece(int row, int col, Piece* piece);
 
-    // Checks board boundaries
     bool isInsideBoard(int row, int col) const;
 
-    // Place a piece manually on board
-    void setPiece(int row, int col, Piece* piece);
+    bool movePiece(int fromRow, int fromCol, int toRow, int toCol);
+
+    bool isCheck(char kingColor);
+
+    bool canEscapeCheck(char kingColor);
+
+    bool isCheckmate(char kingColor);
 };
