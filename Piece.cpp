@@ -15,6 +15,8 @@ void Piece::setPosition(int newX, int newY) {
     y = newY;
 }
 int Piece::getRow() const {
-    return x; }
+    return x;
+}
 int Piece::getCol() const {
-    return y; }
+    return y; 
+}
