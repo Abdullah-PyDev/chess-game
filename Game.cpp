@@ -139,7 +139,69 @@ void Game::start()
 
         // Move piece
         board.movePiece(fromRow, fromCol, toRow, toCol);
+		Piece* promotepawn = board.getPiece(toRow, toCol);
+Piece* newpiece = nullptr;
+if (promotepawn != nullptr && promotepawn->getSymbol() == 'P' && toRow == 0) {
+    cout << "Pawn Promotion, Select Piece: " << endl;
+    cout << "1. Queen" << endl;
+    cout << "2. Rook" << endl;
+    cout << "3. Bishop" << endl;
+    cout << "4. Knight" << endl;
+    int choice;
+    cin >> choice;
+    if (choice == 1) {
+        newpiece = new Queen('W', toRow, toCol);
+    }
 
+    else if (choice == 2) {
+        newpiece = new Rook('W', toRow, toCol);
+    }
+
+    else if (choice == 3) {
+        newpiece = new Bishop('W', toRow, toCol);
+    }
+    
+    else if (choice == 4) {
+        newpiece = new Knight('W', toRow, toCol);
+    }
+
+    else {
+        newpiece = new Queen('W', toRow, toCol);  // Default to Queen
+    }
+    delete promotepawn;
+    board.setPiece(toRow, toCol, newpiece);
+}
+
+else if (promotepawn != nullptr && promotepawn->getSymbol() == 'p' && toRow == 7) {
+    cout << "Pawn Promotion, Select Piece: " << endl;
+    cout << "1. Queen" << endl;
+    cout << "2. Rook" << endl;
+    cout << "3. Bishop" << endl;
+    cout << "4. Knight" << endl;
+    int choice;
+    cin >> choice;
+    if (choice == 1) {
+        newpiece = new Queen('B', toRow, toCol);
+    }
+
+    else if (choice == 2) {
+        newpiece = new Rook('B', toRow, toCol);
+    }
+
+    else if (choice == 3) {
+        newpiece = new Bishop('B', toRow, toCol);
+    }
+
+    else if (choice == 4) {
+        newpiece = new Knight('B', toRow, toCol);
+    }
+
+    else {
+        newpiece = new Queen('B', toRow, toCol);
+    }
+    delete promotepawn;
+    board.setPiece(toRow, toCol, newpiece);
+}
         // Check condition
         if (board.isCheck('W'))
         {
