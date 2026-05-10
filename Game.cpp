@@ -10,12 +10,16 @@
 #include <iostream>
 using namespace std;
 
-Game::Game() : currentTurn('W')
-{
+//white playes first
+Game::Game() : currentTurn('W') {
+    setupBoard();
+     
+    
 }
 
 void Game::setupBoard()
 {
+    cout << "Setup called\n";
     // Black Pieces
     board.setPiece(0, 0, new Rook('B', 0, 0));
     board.setPiece(0, 1, new Knight('B', 0, 1));
@@ -81,9 +85,9 @@ void Game::start()
 {
     int fromRow, fromCol;
     int toRow, toCol;
-
+    
 	// game ends when one of the kings is checkmated
-    while (!board.isCheckmate('W') && !board.isCheckmate('B'))
+    while (true)
     {
         displayBoard();
 
@@ -92,18 +96,23 @@ void Game::start()
         else
             cout << "\nBlack Turn\n";
 
-        cout << "Enter move:\n";
-        cout << "From Row: ";
-        cin >> fromRow;
+        string from, to;
 
-        cout << "From Col: ";
-        cin >> fromCol;
+        cout << "Enter move (e2 e4): ";
+        cin >> from >> to;
 
-        cout << "To Row: ";
-        cin >> toRow;
+        if (from.length() != 2 || to.length() != 2)
+        {
+            cout << "Invalid input format!\n";
+            continue;
+        }
 
-        cout << "To Col: ";
-        cin >> toCol;
+        // convert directly (NO FUNCTIONS)
+        int fromCol = from[0] - 'a';
+        int toCol = to[0] - 'a';
+
+        int fromRow = 8 - (from[1] - '0');
+        int toRow = 8 - (to[1] - '0');
 
         Piece* piece = board.getPiece(fromRow, fromCol);
 
@@ -137,7 +146,7 @@ void Game::start()
             cout << "\nWhite King is in CHECK!\n";
         }
 
-        if (board.isCheck('B'))
+        else if (board.isCheck('B'))
         {
             cout << "\nBlack King is in CHECK!\n";
         }

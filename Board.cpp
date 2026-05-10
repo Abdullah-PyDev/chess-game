@@ -32,9 +32,11 @@ Piece* Board::getPiece(int row, int col) const {
 
 // Places a piece at (row, col) directly (used for board setup)
 void Board::setPiece(int row, int col, Piece* piece) {
+
     if (!isInsideBoard(row, col)) 
         return;
     grid[row][col] = piece;
+   
 }
 
 // Checks whether (row, col) is within the 8x8 board boundaries
@@ -219,10 +221,4 @@ bool Board::canEscapeCheck(char kingColor)
     }
     return false; // No move found that escapes check
 }
-int Piece::getRow() const {
-    return x; 
-}
 
-int Piece::getCol() const {
-    return y;
-}
