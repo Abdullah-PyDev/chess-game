@@ -7,7 +7,7 @@ Rook::Rook(char c, int row, int col)
 }
 
 char Rook::getSymbol() {
-    return (color == 'W') ? 'B' : 'b';
+    return (color == 'W') ? 'R' : 'r';
 }
 
 bool Rook::isValidMove(int toRow, int toCol, const Board& board) const {
