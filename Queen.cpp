@@ -63,16 +63,17 @@ bool Queen::isValidMove(int toRow, int toCol, const Board& board) const {
         return false;
 
     // 2. Determine movement direction (kept style, only safer handling)
+
     int rowStep = 0;
-    if (toRow > x)
+    if (toRow > x) 
         rowStep = 1;
-    else if (toRow < x)
+    else if (toRow < x) 
         rowStep = -1;
 
     int colStep = 0;
-    if (toCol > y)
+    if (toCol > y) 
         colStep = 1;
-    else if (toCol < y)
+    else if (toCol < y) 
         colStep = -1;
 
     // check path (unchanged logic)

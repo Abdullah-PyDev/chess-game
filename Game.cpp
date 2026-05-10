@@ -147,16 +147,22 @@ void Game::start()
         }
 
         // capture finalization
-        if (target) delete target;
+        
 
-        // CHECK DISPLAY (ONLY OPPONENT)
+        // CHECK DISPLAY
         char enemy = (currentTurn == 'W') ? 'B' : 'W';
 
-        if (board.isCheck(enemy))
+        if (board.isCheckmate(enemy))
+        {
+            displayBoard();
+            cout << "\nCheckmate! " << (currentTurn == 'W' ? "White" : "Black") << " wins!\n";
+            return;  // ends the game
+        }
+        else if (board.isCheck(enemy))
         {
             cout << "\nCheck!\n";
         }
-
+        if (target) delete target;
         currentTurn = enemy;
     }
 }

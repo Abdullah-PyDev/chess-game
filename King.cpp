@@ -25,7 +25,7 @@ bool King::isValidMove(int toRow, int toCol, const Board& board) const
 	{
 		return false;
 	}
-	if (rowDiff > 1 && colDiff > 1)
+	if (rowDiff > 1 || colDiff > 1)
 	{
 		return false;
 	}
