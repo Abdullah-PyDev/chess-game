@@ -1,5 +1,5 @@
 #include "Board.h"
-#include"Queen.h"
+#include "Queen.h"
 #include <cmath>
 
 Queen::Queen(char c, int row, int col)
@@ -7,39 +7,35 @@ Queen::Queen(char c, int row, int col)
 }
 
 char Queen::getSymbol() {
-    return (color == 'W') ? 'B' : 'b';
+    // FIX: correct symbol
+    return (color == 'W') ? 'Q' : 'q';
 }
 
 bool Queen::isValidMove(int toRow, int toCol, const Board& board) const {
 
-    //usign abs for making sure magnitude of distance is +ve
-    //conditon for a correct diagonal is row = col
-    
+    // same original condition (kept)
     if (!(abs(toRow - x) == abs(toCol - y)) && (!(x == toRow || y == toCol)))
         return false;
 
-    // 2. Determine movement direction
-    //rows
+    // 2. Determine movement direction (kept style, only safer handling)
     int rowStep = 0;
     if (toRow > x)
         rowStep = 1;
-    else
+    else if (toRow < x)
         rowStep = -1;
-    //col
+
     int colStep = 0;
     if (toCol > y)
         colStep = 1;
-    else
+    else if (toCol < y)
         colStep = -1;
 
-    // check if there are any pieces in the path from source to destination
+    // check path (unchanged logic)
     int r = x + rowStep;
     int c = y + colStep;
-    // checks every box along the path to see if it has any piece or not
-    //avoids jump
-    while(r != toRow || c != toCol){
 
-        // Piece blocking path
+    while (r != toRow || c != toCol) {
+
         if (board.getPiece(r, c) != nullptr)
             return false;
 
@@ -47,15 +43,10 @@ bool Queen::isValidMove(int toRow, int toCol, const Board& board) const {
         c += colStep;
     }
 
-    //check if final destination is empty or not or it has any piece
-    //makes a pointer to the final destination piece on the board
     Piece* destination = board.getPiece(toRow, toCol);
 
-    // returns true if final destination is empty
     if (destination == nullptr || destination->getColor() != color)
-        //captured or final destination is empty
         return true;
+
     return false;
-
-
 }
