@@ -33,10 +33,10 @@ Piece* Board::getPiece(int row, int col) const {
 // Places a piece at (row, col) directly (used for board setup)
 void Board::setPiece(int row, int col, Piece* piece) {
 
-    if (!isInsideBoard(row, col)) 
+    if (!isInsideBoard(row, col))
         return;
     grid[row][col] = piece;
-   
+
 }
 
 // Checks whether (row, col) is within the 8x8 board boundaries
@@ -69,9 +69,8 @@ bool Board::movePiece(int Source_row, int source_col, int dest_row, int dest_col
         return false;
     }
 
-    // Capture: delete the target piece if present
-    if (target != nullptr) {
-        delete target;
+    if (target != nullptr && (target->getSymbol() == 'K' || target->getSymbol() == 'k')) {
+        return false; // cannot capture king
     }
 
     // Move Performance
@@ -83,64 +82,46 @@ bool Board::movePiece(int Source_row, int source_col, int dest_row, int dest_col
 }
 bool Board::isCheck(char kingColor)
 {
-    // Find the king's position
-    int kingRow = -1, kingCol = -1;       // Initialize to invalid position
+    int kingRow = -1, kingCol = -1;
 
-    for (int row = 0; row < 8; row++)
+    // Find king
+    for (int r = 0; r < 8; r++)
     {
-        for (int col = 0; col < 8; col++)
+        for (int c = 0; c < 8; c++)
         {
-            Piece* piece = grid[row][col];
+            Piece* p = grid[r][c];
 
-            if (piece != nullptr)
+            if (p && p->getColor() == kingColor &&
+                (p->getSymbol() == 'K' || p->getSymbol() == 'k'))
             {
-                if (piece->getColor() == kingColor)
-                {
-                    if (piece->getSymbol() == 'K' || piece->getSymbol() == 'k')
-                    {
-                        kingRow = row;
-                        kingCol = col;
-                        break;
-                    }
-                }
+                kingRow = r;
+                kingCol = c;
+                break;
             }
         }
-        if (kingRow != -1)
-        {
-            break; // King found, exit loop
-        }
+        if (kingRow != -1) break;
     }
-    if (kingRow == -1)
-    {
-        // King not found
-        return false;
-    }
-    // Check if any opponent piece can move to the king's position
-    char opponentColor;
 
-    if (kingColor == 'W')
+    if (kingRow == -1) return false;
+
+    char enemy = (kingColor == 'W') ? 'B' : 'W';
+
+    // PURE ATTACK CHECK (NO isValidMove USED)
+    for (int r = 0; r < 8; r++)
     {
-        opponentColor = 'B';
-    }
-    else
-    {
-        opponentColor = 'W';
-    }
-    for (int row = 0; row < 8; row++)
-    {
-        for (int col = 0; col < 8; col++)
+        for (int c = 0; c < 8; c++)
         {
-            Piece* piece = grid[row][col];
-            if (piece != nullptr && piece->getColor() == opponentColor)
+            Piece* p = grid[r][c];
+
+            if (p && p->getColor() == enemy)
             {
-                if (piece->isValidMove(kingRow, kingCol, *this))
-                {
-                    return true; // King is in check
-                }
+                if (p->canAttack(kingRow, kingCol, *this))
+                    return true;
             }
         }
     }
-    return false; // King is not in check
+
+    return false;
 }
 bool Board::isCheckmate(char kingColor)
 {
@@ -221,4 +202,3 @@ bool Board::canEscapeCheck(char kingColor)
     }
     return false; // No move found that escapes check
 }
-

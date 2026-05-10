@@ -1,4 +1,4 @@
-#include "Game.h"
+﻿#include "Game.h"
 
 #include "Pawn.h"
 #include "Rook.h"
@@ -13,8 +13,8 @@ using namespace std;
 //white playes first
 Game::Game() : currentTurn('W') {
     setupBoard();
-     
-    
+
+
 }
 
 void Game::setupBoard()
@@ -83,31 +83,22 @@ void Game::displayBoard()
 
 void Game::start()
 {
-    int fromRow, fromCol;
-    int toRow, toCol;
-    
-	// game ends when one of the kings is checkmated
     while (true)
     {
         displayBoard();
 
-        if (currentTurn == 'W')
-            cout << "\nWhite Turn\n";
-        else
-            cout << "\nBlack Turn\n";
+        cout << (currentTurn == 'W' ? "\nWhite Turn\n" : "\nBlack Turn\n");
 
         string from, to;
-
         cout << "Enter move (e2 e4): ";
         cin >> from >> to;
 
         if (from.length() != 2 || to.length() != 2)
         {
-            cout << "Invalid input format!\n";
+            cout << "Invalid input!\n";
             continue;
         }
 
-        // convert directly (NO FUNCTIONS)
         int fromCol = from[0] - 'a';
         int toCol = to[0] - 'a';
 
@@ -116,45 +107,56 @@ void Game::start()
 
         Piece* piece = board.getPiece(fromRow, fromCol);
 
-        // No piece selected
-        if (piece == nullptr)
+        if (!piece)
         {
-            cout << "No piece at selected position!\n";
+            cout << "No piece!\n";
             continue;
         }
 
-        // Wrong player's piece
         if (piece->getColor() != currentTurn)
         {
             cout << "Not your piece!\n";
             continue;
         }
 
-        // Invalid move
+        Piece* target = board.getPiece(toRow, toCol);
+
         if (!piece->isValidMove(toRow, toCol, board))
         {
             cout << "Invalid move!\n";
             continue;
         }
 
-        // Move piece
-        board.movePiece(fromRow, fromCol, toRow, toCol);
+        // ===== SIMULATE MOVE =====
+        board.setPiece(toRow, toCol, piece);
+        board.setPiece(fromRow, fromCol, nullptr);
 
-        // Check condition
-        if (board.isCheck('W'))
+        int oldRow = piece->getRow();
+        int oldCol = piece->getCol();
+        piece->setPosition(toRow, toCol);
+
+        // ❌ SELF CHECK PROTECTION
+        if (board.isCheck(currentTurn))
         {
-            cout << "\nWhite King is in CHECK!\n";
+            board.setPiece(fromRow, fromCol, piece);
+            board.setPiece(toRow, toCol, target);
+            piece->setPosition(oldRow, oldCol);
+
+            cout << "Move not allowed (puts king in check)!\n";
+            continue;
         }
 
-        else if (board.isCheck('B'))
+        // capture finalization
+        if (target) delete target;
+
+        // CHECK DISPLAY (ONLY OPPONENT)
+        char enemy = (currentTurn == 'W') ? 'B' : 'W';
+
+        if (board.isCheck(enemy))
         {
-            cout << "\nBlack King is in CHECK!\n";
+            cout << "\nCheck!\n";
         }
 
-        // Switch turn
-        if (currentTurn == 'W')
-            currentTurn = 'B';
-        else
-            currentTurn = 'W';
+        currentTurn = enemy;
     }
 }

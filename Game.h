@@ -14,4 +14,8 @@ public:
     void displayBoard();
 
     void start();
+    bool wouldLeaveKingInCheck(int fromRow, int fromCol,
+        int toRow, int toCol,
+        char color);
+
 };

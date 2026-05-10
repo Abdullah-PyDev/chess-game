@@ -4,10 +4,18 @@
 // Constructor
 Pawn::Pawn(char c, int row, int col) : Piece(c, row, col) {}
 
-char Pawn::getSymbol() {
+char Pawn::getSymbol() const 
+{
     return (color == 'W') ? 'P' : 'p';
 }
+bool Pawn::canAttack(int r, int c, const Board& board)
+{
+    int direction = (color == 'W') ? -1 : 1;
 
+    // pawn attacks diagonally only
+    return (r == x + direction &&
+        (c == y + 1 || c == y - 1));
+}
 // Pawn movement logic:
 bool Pawn::isValidMove(int toRow, int toCol, const Board& board) const {
 

@@ -6,11 +6,56 @@ Queen::Queen(char c, int row, int col)
     : Piece(c, row, col) {
 }
 
-char Queen::getSymbol() {
+char Queen::getSymbol() const {
     // FIX: correct symbol
     return (color == 'W') ? 'Q' : 'q';
 }
+bool Queen::canAttack(int r, int c, const Board& board)
+{
+    // Horizontal / Vertical (like rook)
+    if (r == x || c == y)
+    {
+        int dr = (r == x) ? 0 : (r > x ? 1 : -1);
+        int dc = (c == y) ? 0 : (c > y ? 1 : -1);
 
+        int i = x + dr;
+        int j = y + dc;
+
+        while (i != r || j != c)
+        {
+            if (board.getPiece(i, j) != nullptr)
+                return false;
+
+            i += dr;
+            j += dc;
+        }
+
+        return true;
+    }
+
+    // Diagonal (like bishop)
+    if (abs(r - x) == abs(c - y))
+    {
+        int dr = (r > x) ? 1 : -1;
+        int dc = (c > y) ? 1 : -1;
+
+        int i = x + dr;
+        int j = y + dc;
+
+        while (i != r && j != c)
+        {
+            if (board.getPiece(i, j) != nullptr)
+                return false;
+
+            i += dr;
+            j += dc;
+        }
+
+        return true;
+    }
+
+    return false;
+}
 bool Queen::isValidMove(int toRow, int toCol, const Board& board) const {
 
     // same original condition (kept)

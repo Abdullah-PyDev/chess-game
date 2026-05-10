@@ -6,7 +6,8 @@ Piece::Piece(char c, int row, int col) {
     y = col;
 }
 
-char Piece::getColor() {
+char Piece::getColor() const 
+{
     return color;
 }
 

@@ -6,10 +6,32 @@ Rook::Rook(char c, int row, int col)
     : Piece(c, row, col) {
 }
 
-char Rook::getSymbol() {
-    return (color == 'W') ? 'B' : 'b';
+char Rook::getSymbol() const {
+    // FIX: correct symbol
+    return (color == 'W') ? 'R' : 'r';
 }
+bool Rook::canAttack(int r, int c, const Board& board)
+{
+    if (r != x && c != y)
+        return false;
 
+    int dr = (r == x) ? 0 : (r > x ? 1 : -1);
+    int dc = (c == y) ? 0 : (c > y ? 1 : -1);
+
+    int i = x + dr;
+    int j = y + dc;
+
+    while (i != r || j != c)
+    {
+        if (board.getPiece(i, j) != nullptr)
+            return false;
+
+        i += dr;
+        j += dc;
+    }
+
+    return true;
+}
 bool Rook::isValidMove(int toRow, int toCol, const Board& board) const {
 
     // Rook logic

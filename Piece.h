@@ -10,9 +10,9 @@ public:
 
     virtual bool isValidMove(int toRow, int toCol, const Board& board) const = 0;
 
-    virtual char getSymbol() = 0;
-
-    char getColor();
+    virtual char getSymbol() const = 0;
+    virtual bool canAttack(int row, int col, const Board& board) = 0;
+    char getColor() const;
 
     void setPosition(int newX, int newY);
     

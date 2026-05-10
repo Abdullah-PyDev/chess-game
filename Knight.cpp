@@ -40,7 +40,14 @@ bool Knight::isValidMove(int toRow, int toCol, const Board& board) const
 	return false; // Destination occupied by same color piece
 
 }
-char Knight::getSymbol()
+bool Knight::canAttack(int r, int c, const Board& board)
+{
+	int dx = abs(r - x);
+	int dy = abs(c - y);
+
+	return (dx == 2 && dy == 1) || (dx == 1 && dy == 2);
+}
+char Knight::getSymbol () const
 {
 	// Returning 'N' for white knight and 'n' for black knight
 	if (color == 'W')

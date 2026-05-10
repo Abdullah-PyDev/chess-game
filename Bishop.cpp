@@ -6,9 +6,32 @@ Bishop::Bishop(char c, int row, int col)
     : Piece(c, row, col) {
 }
 
-char Bishop::getSymbol() {
+char Bishop::getSymbol()  const{
     return (color == 'W') ? 'B' : 'b';
 }
+bool Bishop::canAttack(int r, int c, const Board& board)
+{
+    if (abs(r - x) != abs(c - y))
+        return false;
+
+    int dr = (r > x) ? 1 : -1;
+    int dc = (c > y) ? 1 : -1;
+
+    int i = x + dr;
+    int j = y + dc;
+
+    while (i != r && j != c)
+    {
+        if (board.getPiece(i, j) != nullptr)
+            return false;
+
+        i += dr;
+        j += dc;
+    }
+
+    return true;
+}
+
 
 bool Bishop::isValidMove(int toRow, int toCol, const Board& board) const {
 

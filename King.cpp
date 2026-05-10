@@ -6,6 +6,11 @@
 
 King::King(char c, int row, int col) : Piece(c, row, col)
 { }
+bool King::canAttack(int r, int c, const Board& board)
+{
+	return abs(r - x) <= 1 && abs(c - y) <= 1;
+}
+
 
 bool King::isValidMove(int toRow, int toCol, const Board& board) const
 {
@@ -35,7 +40,7 @@ bool King::isValidMove(int toRow, int toCol, const Board& board) const
 	return false; // Destination occupied by same color piece
 
 }
-char King::getSymbol()
+char King::getSymbol() const
 {
 	// Returning 'K' for white king and 'k' for black king
 
