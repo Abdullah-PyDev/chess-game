@@ -1,5 +1,5 @@
 ## Screenshots
 
 ### Gameplay
-![Gameplay](screenshots/Capture.png)
+![Gameplay](./screenshots/Capture.png)
 
