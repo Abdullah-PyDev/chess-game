@@ -7,20 +7,49 @@
 #include "Queen.h"
 #include "King.h"
 
-#include <iostream>
-using namespace std;
+#include <string>
 
-//white playes first
-Game::Game() : currentTurn('W') {
+// =====================================================
+// CONSTRUCTOR
+// =====================================================
+
+Game::Game()
+{
+    currentTurn = 'W';
+
+    selected = false;
+
+    selectedRow = -1;
+    selectedCol = -1;
+
+    check = false;
+    checkmate = false;
+
+    promotionActive = false;
+
+    promoRow = -1;
+    promoCol = -1;
+
+    lastFromRow = -1;
+    lastFromCol = -1;
+
+    lastToRow = -1;
+    lastToCol = -1;
+
+    whiteTime = 600.0f;
+    blackTime = 600.0f;
+
     setupBoard();
-
-
 }
+
+// =====================================================
+// SETUP BOARD
+// =====================================================
 
 void Game::setupBoard()
 {
-    cout << "Setup called\n";
-    // Black Pieces
+    // BLACK
+
     board.setPiece(0, 0, new Rook('B', 0, 0));
     board.setPiece(0, 1, new Knight('B', 0, 1));
     board.setPiece(0, 2, new Bishop('B', 0, 2));
@@ -30,12 +59,13 @@ void Game::setupBoard()
     board.setPiece(0, 6, new Knight('B', 0, 6));
     board.setPiece(0, 7, new Rook('B', 0, 7));
 
-    for (int col = 0; col < 8; col++)
+    for (int c = 0; c < 8; c++)
     {
-        board.setPiece(1, col, new Pawn('B', 1, col));
+        board.setPiece(1, c, new Pawn('B', 1, c));
     }
 
-    // White Pieces
+    // WHITE
+
     board.setPiece(7, 0, new Rook('W', 7, 0));
     board.setPiece(7, 1, new Knight('W', 7, 1));
     board.setPiece(7, 2, new Bishop('W', 7, 2));
@@ -45,156 +75,408 @@ void Game::setupBoard()
     board.setPiece(7, 6, new Knight('W', 7, 6));
     board.setPiece(7, 7, new Rook('W', 7, 7));
 
-    for (int col = 0; col < 8; col++)
+    for (int c = 0; c < 8; c++)
     {
-        board.setPiece(6, col, new Pawn('W', 6, col));
+        board.setPiece(6, c, new Pawn('W', 6, c));
     }
 }
 
-void Game::start()
+// =====================================================
+// HANDLE CLICK
+// =====================================================
+
+void Game::handleClick(int row, int col)
 {
-    while (true)
+    // =========================
+    // SELECT PIECE
+    // =========================
+
+    if (!selected)
     {
-        displayBoard();
+        Piece* p = board.getPiece(row, col);
 
-        cout << (currentTurn == 'W' ? "\nWhite Turn\n" : "\nBlack Turn\n");
-
-        string from, to;
-        cout << "Enter move (e2 e4): ";
-        cin >> from >> to;
-
-        if (from.length() != 2 || to.length() != 2)
+        if (p && p->getColor() == currentTurn)
         {
-            cout << "Invalid input!\n";
-            continue;
+            selected = true;
+
+            selectedRow = row;
+            selectedCol = col;
+
+            calculateLegalMoves(row, col);
         }
 
-        int fromCol = from[0] - 'a';
-        int toCol = to[0] - 'a';
+        return;
+    }
 
-        int fromRow = 8 - (from[1] - '0');
-        int toRow = 8 - (to[1] - '0');
+    // =========================
+    // TRY MOVE
+    // =========================
 
-        Piece* piece = board.getPiece(fromRow, fromCol);
-
-        if (!piece)
+    for (auto& move : legalMoves)
+    {
+        if (move.first == row &&
+            move.second == col)
         {
-            cout << "No piece!\n";
-            continue;
+            makeMove(
+                selectedRow,
+                selectedCol,
+                row,
+                col
+            );
+
+            break;
         }
-
-        if (piece->getColor() != currentTurn)
-        {
-            cout << "Not your piece!\n";
-            continue;
-        }
-
-        Piece* target = board.getPiece(toRow, toCol);
-
-        if (!piece->isValidMove(toRow, toCol, board))
-        {
-            cout << "Invalid move!\n";
-            continue;
-        }
-        Piece* promotepawn = board.getPiece(toRow, toCol);
-Piece* newpiece = nullptr;
-if (promotepawn != nullptr && promotepawn->getSymbol() == 'P' && toRow == 0) {
-    cout << "Pawn Promotion, Select Piece: " << endl;
-    cout << "1. Queen" << endl;
-    cout << "2. Rook" << endl;
-    cout << "3. Bishop" << endl;
-    cout << "4. Knight" << endl;
-    int choice;
-    cin >> choice;
-    if (choice == 1) {
-        newpiece = new Queen('W', toRow, toCol);
     }
 
-    else if (choice == 2) {
-        newpiece = new Rook('W', toRow, toCol);
-    }
+    selected = false;
 
-    else if (choice == 3) {
-        newpiece = new Bishop('W', toRow, toCol);
-    }
-    
-    else if (choice == 4) {
-        newpiece = new Knight('W', toRow, toCol);
-    }
-
-    else {
-        newpiece = new Queen('W', toRow, toCol);  // Default to Queen
-    }
-    delete promotepawn;
-    board.setPiece(toRow, toCol, newpiece);
+    legalMoves.clear();
 }
 
-else if (promotepawn != nullptr && promotepawn->getSymbol() == 'p' && toRow == 7) {
-    cout << "Pawn Promotion, Select Piece: " << endl;
-    cout << "1. Queen" << endl;
-    cout << "2. Rook" << endl;
-    cout << "3. Bishop" << endl;
-    cout << "4. Knight" << endl;
-    int choice;
-    cin >> choice;
-    if (choice == 1) {
-        newpiece = new Queen('B', toRow, toCol);
-    }
+// =====================================================
+// CALCULATE LEGAL MOVES
+// =====================================================
 
-    else if (choice == 2) {
-        newpiece = new Rook('B', toRow, toCol);
-    }
+void Game::calculateLegalMoves(int row, int col)
+{
+    legalMoves.clear();
 
-    else if (choice == 3) {
-        newpiece = new Bishop('B', toRow, toCol);
-    }
+    Piece* piece = board.getPiece(row, col);
 
-    else if (choice == 4) {
-        newpiece = new Knight('B', toRow, toCol);
-    }
+    if (!piece)
+        return;
 
-    else {
-        newpiece = new Queen('B', toRow, toCol);
-    }
-    delete promotepawn;
-    board.setPiece(toRow, toCol, newpiece);
-}
-        // ===== SIMULATE MOVE =====
-        board.setPiece(toRow, toCol, piece);
-        board.setPiece(fromRow, fromCol, nullptr);
-
-        int oldRow = piece->getRow();
-        int oldCol = piece->getCol();
-        piece->setPosition(toRow, toCol);
-
-        // ❌ SELF CHECK PROTECTION
-        if (board.isCheck(currentTurn))
+    for (int r = 0; r < 8; r++)
+    {
+        for (int c = 0; c < 8; c++)
         {
-            board.setPiece(fromRow, fromCol, piece);
-            board.setPiece(toRow, toCol, target);
+            Piece* target =
+                board.getPiece(r, c);
+
+            if (target &&
+                target->getColor() ==
+                piece->getColor())
+            {
+                continue;
+            }
+
+            if (!piece->isValidMove(r, c, board))
+            {
+                continue;
+            }
+
+            // =========================
+            // SIMULATE MOVE
+            // =========================
+
+            Piece* captured =
+                board.getPiece(r, c);
+
+            board.setPiece(r, c, piece);
+            board.setPiece(row, col, nullptr);
+
+            int oldRow = piece->getRow();
+            int oldCol = piece->getCol();
+
+            piece->setPosition(r, c);
+
+            bool illegal =
+                board.isCheck(piece->getColor());
+
+            // =========================
+            // UNDO MOVE
+            // =========================
+
+            board.setPiece(row, col, piece);
+            board.setPiece(r, c, captured);
+
             piece->setPosition(oldRow, oldCol);
 
-            cout << "Move not allowed (puts king in check)!\n";
-            continue;
+            if (!illegal)
+            {
+                legalMoves.push_back({ r, c });
+            }
         }
-
-        // capture finalization
-        
-
-        // CHECK DISPLAY
-        char enemy = (currentTurn == 'W') ? 'B' : 'W';
-
-        if (board.isCheckmate(enemy))
-        {
-            displayBoard();
-            cout << "\nCheckmate! " << (currentTurn == 'W' ? "White" : "Black") << " wins!\n";
-            return;  // ends the game
-        }
-        else if (board.isCheck(enemy))
-        {
-            cout << "\nCheck!\n";
-        }
-        if (target) delete target;
-        currentTurn = enemy;
     }
+}
+
+// =====================================================
+// MAKE MOVE
+// =====================================================
+
+bool Game::makeMove(
+    int fromRow,
+    int fromCol,
+    int toRow,
+    int toCol)
+{
+    Piece* target =
+        board.getPiece(toRow, toCol);
+
+    bool moved =
+        board.movePiece(
+            fromRow,
+            fromCol,
+            toRow,
+            toCol
+        );
+
+    if (!moved)
+        return false;
+
+    // =========================
+    // LAST MOVE
+    // =========================
+
+    lastFromRow = fromRow;
+    lastFromCol = fromCol;
+
+    lastToRow = toRow;
+    lastToCol = toCol;
+
+    // =========================
+    // MOVE HISTORY
+    // =========================
+
+    char fromFile = 'a' + fromCol;
+    char toFile = 'a' + toCol;
+
+    int fromRank = 8 - fromRow;
+    int toRank = 8 - toRow;
+
+    std::string moveText;
+
+    moveText += fromFile;
+    moveText += std::to_string(fromRank);
+
+    moveText += " -> ";
+
+    moveText += toFile;
+    moveText += std::to_string(toRank);
+
+    moveHistory.push_back(moveText);
+
+    // =========================
+    // PROMOTION
+    // =========================
+
+    Piece* movedPiece =
+        board.getPiece(toRow, toCol);
+
+    if (movedPiece)
+    {
+        char s = movedPiece->getSymbol();
+
+        if ((s == 'P' && toRow == 0) ||
+            (s == 'p' && toRow == 7))
+        {
+            promotionActive = true;
+
+            promoRow = toRow;
+            promoCol = toCol;
+
+            promotionColor =
+                movedPiece->getColor();
+        }
+    }
+
+    // =========================
+    // SWITCH TURN
+    // =========================
+
+    switchTurn();
+
+    check =
+        board.isCheck(currentTurn);
+
+    checkmate =
+        board.isCheckmate(currentTurn);
+
+    return true;
+}
+
+// =====================================================
+// SWITCH TURN
+// =====================================================
+
+void Game::switchTurn()
+{
+    currentTurn =
+        (currentTurn == 'W')
+        ? 'B'
+        : 'W';
+}
+
+// =====================================================
+// UPDATE CLOCK
+// =====================================================
+
+void Game::updateClock(float dt)
+{
+    if (checkmate)
+        return;
+
+    if (currentTurn == 'W')
+    {
+        whiteTime -= dt;
+
+        if (whiteTime < 0)
+            whiteTime = 0;
+    }
+    else
+    {
+        blackTime -= dt;
+
+        if (blackTime < 0)
+            blackTime = 0;
+    }
+}
+
+// =====================================================
+// PROMOTE PAWN
+// =====================================================
+
+void Game::promotePawn(int choice)
+{
+    Piece* old =
+        board.getPiece(
+            promoRow,
+            promoCol
+        );
+
+    if (!old)
+        return;
+
+    delete old;
+
+    Piece* newPiece = nullptr;
+
+    if (choice == 1)
+    {
+        newPiece =
+            new Queen(
+                promotionColor,
+                promoRow,
+                promoCol
+            );
+    }
+
+    else if (choice == 2)
+    {
+        newPiece =
+            new Rook(
+                promotionColor,
+                promoRow,
+                promoCol
+            );
+    }
+
+    else if (choice == 3)
+    {
+        newPiece =
+            new Bishop(
+                promotionColor,
+                promoRow,
+                promoCol
+            );
+    }
+
+    else if (choice == 4)
+    {
+        newPiece =
+            new Knight(
+                promotionColor,
+                promoRow,
+                promoCol
+            );
+    }
+
+    board.setPiece(
+        promoRow,
+        promoCol,
+        newPiece
+    );
+
+    promotionActive = false;
+}
+
+// =====================================================
+// GETTERS
+// =====================================================
+
+Board& Game::getBoard()
+{
+    return board;
+}
+
+char Game::getCurrentTurn() const
+{
+    return currentTurn;
+}
+
+bool Game::isCheck() const
+{
+    return check;
+}
+
+bool Game::isCheckmate() const
+{
+    return checkmate;
+}
+
+bool Game::isPromotionActive() const
+{
+    return promotionActive;
+}
+
+int Game::getPromoRow() const
+{
+    return promoRow;
+}
+
+int Game::getPromoCol() const
+{
+    return promoCol;
+}
+
+int Game::getLastFromRow() const
+{
+    return lastFromRow;
+}
+
+int Game::getLastFromCol() const
+{
+    return lastFromCol;
+}
+
+int Game::getLastToRow() const
+{
+    return lastToRow;
+}
+
+int Game::getLastToCol() const
+{
+    return lastToCol;
+}
+
+float Game::getWhiteTime() const
+{
+    return whiteTime;
+}
+
+float Game::getBlackTime() const
+{
+    return blackTime;
+}
+
+const std::vector<std::string>&
+Game::getMoveHistory() const
+{
+    return moveHistory;
+}
+
+const std::vector<std::pair<int, int>>&
+Game::getLegalMoves() const
+{
+    return legalMoves;
 }

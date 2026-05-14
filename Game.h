@@ -1,24 +1,88 @@
 #pragma once
-#include "Board.h"
 
-class Game {
+#include "Board.h"
+#include <vector>
+#include <string>
+
+class Game
+{
 private:
-    /*Board board;
-    char currentTurn;*/
+
+    Board board;
+
+    char currentTurn;
+
+    bool selected;
+    int selectedRow;
+    int selectedCol;
+
+    bool check;
+    bool checkmate;
+
+    bool promotionActive;
+    int promoRow;
+    int promoCol;
+    char promotionColor;
+
+    int lastFromRow;
+    int lastFromCol;
+    int lastToRow;
+    int lastToCol;
+
+    float whiteTime;
+    float blackTime;
+
+    std::vector<std::string> moveHistory;
+
+    std::vector<std::pair<int, int>> legalMoves;
 
 public:
+
     Game();
-    Board board;
-    int lastFromRow = -1;
-    int lastFromCol = -1;
-    int lastToRow = -1;
-    int lastToCol = -1;
-    char currentTurn;
 
     void setupBoard();
 
-    void displayBoard();
+    void handleClick(int row, int col);
 
-    void start();
-   
+    void calculateLegalMoves(int row, int col);
+
+    bool makeMove(int fromRow, int fromCol,
+        int toRow, int toCol);
+
+    void switchTurn();
+
+    void updateClock(float dt);
+
+    void promotePawn(int choice);
+
+    // =========================
+    // GETTERS
+    // =========================
+
+    Board& getBoard();
+
+    char getCurrentTurn() const;
+
+    bool isCheck() const;
+
+    bool isCheckmate() const;
+
+    bool isPromotionActive() const;
+
+    int getPromoRow() const;
+    int getPromoCol() const;
+
+    int getLastFromRow() const;
+    int getLastFromCol() const;
+    int getLastToRow() const;
+    int getLastToCol() const;
+
+    float getWhiteTime() const;
+    float getBlackTime() const;
+
+    const std::vector<std::string>&
+        getMoveHistory() const;
+
+    const std::vector<std::pair<int, int>>&
+        getLegalMoves() const;
 };
