@@ -1,142 +1,77 @@
-#include "raylib.h"
+﻿#include "raylib.h"
 #include "Game.h"
+
 #include <vector>
 #include <string>
 #include <cstdio>
-#include"Queen.h"
-#include"Bishop.h"
-#include"King.h"
-#include"Rook.h"
-#include"Knight.h"
 
-void PromotePawn(Board& board, char color, int r, int c, int choice)
-{
-    Piece* old = board.getPiece(r, c);
-
-    if (!old)
-        return;
-
-    delete old;
-
-    Piece* newPiece = nullptr;
-
-    if (choice == 1)
-    {
-        newPiece = new Queen(color, r, c);
-    }
-    else if (choice == 2)
-    {
-        newPiece = new Rook(color, r, c);
-    }
-    else if (choice == 3)
-    {
-        newPiece = new Bishop(color, r, c);
-    }
-    else if (choice == 4)
-    {
-        newPiece = new Knight(color, r, c);
-    }
-
-    board.setPiece(r, c, newPiece);
-}
-// =====================================================
-// CONFIG
-// =====================================================
 const int TILE = 80;
 const int BOARD = TILE * 8;
 const int PANEL = 320;
 const int SCREEN_W = BOARD + PANEL;
 const int SCREEN_H = 860;
 
-// =====================================================
-// TEXTURES
-// =====================================================
 Texture2D pieceTex[12];
 
-// =====================================================
-// SOUNDS
-// =====================================================
 Sound moveSound;
 Sound captureSound;
 Sound checkSound;
 Sound checkmateSound;
+Sound promotionSound;
 
-// =====================================================
-// LAST MOVE
-// =====================================================
-int lastFromRow = -1;
-int lastFromCol = -1;
-int lastToRow = -1;
-int lastToCol = -1;
-// PROMOTION STATE
-// =====================================================
-bool promotionActive = false;
-int promoRow = -1;
-int promoCol = -1;
-char promotionColor = 'W';
-
-// =====================================================
-// MOVE HISTORY
-// =====================================================
-std::vector<std::string> moveHistory;
-
-// =====================================================
-// CHESS CLOCK
-// =====================================================
-float whiteTime = 600.0f;
-float blackTime = 600.0f;
-
-bool gameOverOnTime = false;
-std::string timeWinner = "";
-
-// =====================================================
-// BOARD THEMES
-// =====================================================
 struct BoardTheme
 {
     Color light;
     Color dark;
 };
 
-std::vector<BoardTheme> themes =
+BoardTheme themes[] =
 {
-    { Color{240,217,181,255}, Color{181,136,99,255} }, // Classic
-    { Color{235,235,208,255}, Color{119,148,85,255} }, // Green
-    { Color{229,228,200,255}, Color{60,95,135,255} },  // Blue
-    { Color{255,230,200,255}, Color{140,90,60,255} },  // Brown
-    { Color{220,220,220,255}, Color{80,80,80,255} }    // Gray
+    { {240,217,181,255}, {181,136,99,255} }, // Classic
+    { {235,235,208,255}, {119,148,85,255} }, // Green
+    { {229,228,200,255}, {60,95,135,255}  }, // Blue
+    { {255,230,200,255}, {140,90,60,255}  }, // Brown
+    { {220,220,220,255}, {80,80,80,255}   }  // Gray
 };
 
 int currentTheme = 0;
 
-// =====================================================
-// LOAD PIECES
-// =====================================================
+// 10 minutes per player
+float whiteTime = 600.0f;
+float blackTime = 600.0f;
+bool  gameOverOnTime = false;
+
+std::string timeWinner = "";
+
 void LoadPieces()
 {
-    pieceTex[0] = LoadTexture("Assets/PNG/wK.png");
-    pieceTex[1] = LoadTexture("Assets/PNG/wQ.png");
-    pieceTex[2] = LoadTexture("Assets/PNG/wR.png");
-    pieceTex[3] = LoadTexture("Assets/PNG/wB.png");
-    pieceTex[4] = LoadTexture("Assets/PNG/wN.png");
-    pieceTex[5] = LoadTexture("Assets/PNG/wP.png");
+    const char* paths[12] =
+    {
+        "Assets/PNG/wK.png",
+        "Assets/PNG/wQ.png",
+        "Assets/PNG/wR.png",
+        "Assets/PNG/wB.png",
+        "Assets/PNG/wN.png",
+        "Assets/PNG/wP.png",
 
-    pieceTex[6] = LoadTexture("Assets/PNG/bK.png");
-    pieceTex[7] = LoadTexture("Assets/PNG/bQ.png");
-    pieceTex[8] = LoadTexture("Assets/PNG/bR.png");
-    pieceTex[9] = LoadTexture("Assets/PNG/bB.png");
-    pieceTex[10] = LoadTexture("Assets/PNG/bN.png");
-    pieceTex[11] = LoadTexture("Assets/PNG/bP.png");
+        "Assets/PNG/bK.png",
+        "Assets/PNG/bQ.png",
+        "Assets/PNG/bR.png",
+        "Assets/PNG/bB.png",
+        "Assets/PNG/bN.png",
+        "Assets/PNG/bP.png"
+    };
+
+    for (int i = 0; i < 12; i++)
+    {
+        pieceTex[i] = LoadTexture(paths[i]);
+    }
 }
 
-// =====================================================
-// GET PIECE INDEX
-// =====================================================
-int GetPieceIndex(Piece* p)
+// uppercase = white, lowercase = black
+int GetPieceIndex(const Piece* p)
 {
-    char s = p->getSymbol();
-
-    switch (s)
+    switch (p->getSymbol())
     {
     case 'K': return 0;
     case 'Q': return 1;
@@ -156,10 +91,19 @@ int GetPieceIndex(Piece* p)
     return -1;
 }
 
+void FormatClock(char* buffer, const char* label, float seconds)
+{
+    int mins = (int)seconds / 60;
+    int secs = (int)seconds % 60;
 
-// =====================================================
-// MAIN
-// =====================================================
+    sprintf_s(buffer, 32, "%s: %02d:%02d", label, mins, secs);
+}
+
+void DrawOverlay(Color color = { 0,0,0,200 })
+{
+    DrawRectangle(0, 0, SCREEN_W, SCREEN_H, color);
+}
+
 int main()
 {
     InitWindow(SCREEN_W, SCREEN_H, "Ultimate Chess");
@@ -171,106 +115,41 @@ int main()
     LoadPieces();
 
     moveSound = LoadSound("Assets/Sounds/move.mp3");
-    captureSound = LoadSound("Assets/Sounds/anime-ahh.mp3");
+    captureSound = LoadSound("Assets/Sounds/Check.mp3");
     checkSound = LoadSound("Assets/Sounds/gun-load_abJphmJ.mp3");
     checkmateSound = LoadSound("Assets/Sounds/checkmate.mp3");
+    promotionSound = LoadSound("Assets/Sounds/promotion.mp3");
 
     Game game;
 
-    std::vector<std::pair<int, int>> legalMoves;
-
-    bool selected = false;
-    Piece* selectedPiece = nullptr;
-
-    int sr = -1;
-    int sc = -1;
-
-    bool check = false;
-    bool checkmate = false;
-
-    // =====================================================
-    // LEGAL MOVES
-    // =====================================================
-    auto GetMoves = [&](Piece* p, int r, int c)
-        {
-            legalMoves.clear();
-
-            for (int tr = 0; tr < 8; tr++)
-            {
-                for (int tc = 0; tc < 8; tc++)
-                {
-                    Piece* target = game.board.getPiece(tr, tc);
-
-                    if (target &&
-                        target->getColor() == p->getColor())
-                    {
-                        continue;
-                    }
-
-                    if (!p->isValidMove(tr, tc, game.board))
-                    {
-                        continue;
-                    }
-
-                    // simulate move
-                    Piece* captured = game.board.getPiece(tr, tc);
-
-                    game.board.setPiece(tr, tc, p);
-                    game.board.setPiece(r, c, nullptr);
-
-                    int oldR = p->getRow();
-                    int oldC = p->getCol();
-
-                    p->setPosition(tr, tc);
-
-                    bool illegal =
-                        game.board.isCheck(p->getColor());
-
-                    // undo
-                    game.board.setPiece(r, c, p);
-                    game.board.setPiece(tr, tc, captured);
-
-                    p->setPosition(oldR, oldC);
-
-                    if (!illegal)
-                    {
-                        legalMoves.push_back({ tr, tc });
-                    }
-                }
-            }
-        };
-
-    // =====================================================
-    // GAME LOOP
-    // =====================================================
     while (!WindowShouldClose())
     {
         float dt = GetFrameTime();
 
-        // =====================================================
-        // CHANGE THEME
-        // =====================================================
-        if (IsKeyPressed(KEY_ONE))
-            currentTheme = 0;
-
-        if (IsKeyPressed(KEY_TWO))
-            currentTheme = 1;
-
-        if (IsKeyPressed(KEY_THREE))
-            currentTheme = 2;
-
-        if (IsKeyPressed(KEY_FOUR))
-            currentTheme = 3;
-
-        if (IsKeyPressed(KEY_FIVE))
-            currentTheme = 4;
-
-        // =====================================================
-        // CLOCK
-        // =====================================================
-        if (!checkmate && !gameOverOnTime)
+        // keys 1-5 switch theme, but block them during promotion
+        // since those same keys are used to pick a piece
+        if (!game.isPromotionActive())
         {
-            if (game.currentTurn == 'W')
+            if (IsKeyPressed(KEY_ONE))   currentTheme = 0;
+            if (IsKeyPressed(KEY_TWO))   currentTheme = 1;
+            if (IsKeyPressed(KEY_THREE)) currentTheme = 2;
+            if (IsKeyPressed(KEY_FOUR))  currentTheme = 3;
+            if (IsKeyPressed(KEY_FIVE))  currentTheme = 4;
+        }
+
+        if ((game.isCheckmate() || gameOverOnTime) && IsKeyPressed(KEY_R))
+        {
+            game.reset();
+
+            whiteTime = 600.0f;
+            blackTime = 600.0f;
+            gameOverOnTime = false;
+            timeWinner = "";
+        }
+
+        if (!game.isCheckmate() && !gameOverOnTime)
+        {
+            if (game.getCurrentTurn() == 'W')
                 whiteTime -= dt;
             else
                 blackTime -= dt;
@@ -290,325 +169,123 @@ int main()
             }
         }
 
-        Vector2 mouse = GetMousePosition();
-        
-        if (promotionActive)
+        if (game.isPromotionActive())
         {
-            if (IsKeyPressed(KEY_ONE))
-            {
-                PromotePawn(game.board, promotionColor, promoRow, promoCol, 1);
-                promotionActive = false;
-            }
-
-            if (IsKeyPressed(KEY_TWO))
-            {
-                PromotePawn(game.board, promotionColor, promoRow, promoCol, 2);
-                promotionActive = false;
-            }
-
-            if (IsKeyPressed(KEY_THREE))
-            {
-                PromotePawn(game.board, promotionColor, promoRow, promoCol, 3);
-                promotionActive = false;
-            }
-
-            if (IsKeyPressed(KEY_FOUR))
-            {
-                PromotePawn(game.board, promotionColor, promoRow, promoCol, 4);
-                promotionActive = false;
-            }
-        }
-        // =====================================================
-        // GAME OVER
-        // =====================================================
-        if (checkmate || gameOverOnTime)
-        {
-            BeginDrawing();
-
-            ClearBackground(BLACK);
-
-            if (checkmate)
-            {
-                DrawText(
-                    "CHECKMATE!",
-                    BOARD / 2 - 120,
-                    250,
-                    40,
-                    RED
-                );
-                DrawText(
-                    (game.currentTurn == 'W')
-                    ? "BLACK WINS"
-                    : "WHITE WINS",
-                    BOARD / 2 - 120,
-                    320,
-                    35,
-                    WHITE
-                );
-            }
-            else
-            {
-                DrawText(
-                    timeWinner.c_str(),
-                    BOARD / 2 - 170,
-                    300,
-                    35,
-                    GOLD
-                );
-            }
-
-            EndDrawing();
-            continue;
+            if (IsKeyPressed(KEY_ONE)) { game.promotePawn(1); PlaySound(promotionSound); }
+            if (IsKeyPressed(KEY_TWO)) { game.promotePawn(2); PlaySound(promotionSound); }
+            if (IsKeyPressed(KEY_THREE)) { game.promotePawn(3); PlaySound(promotionSound); }
+            if (IsKeyPressed(KEY_FOUR)) { game.promotePawn(4); PlaySound(promotionSound); }
         }
 
-        // =====================================================
-        // INPUT
-        // =====================================================
-        if (!promotionActive && IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+        if (!game.isPromotionActive() && IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
         {
-            int c = mouse.x / TILE;
-            int r = mouse.y / TILE;
+            Vector2 mouse = GetMousePosition();
 
-            if (c >= 0 && c < 8 && r >= 0 && r < 8)
+            int col = (int)(mouse.x / TILE);
+            int row = (int)(mouse.y / TILE);
+
+            if (row >= 0 && row < 8 && col >= 0 && col < 8)
             {
-                // =============================================
-                // SELECT
-                // =============================================
-                if (!selected)
+                // snapshot state before the move so we can
+                // figure out which sounds to play after
+                int  oldHistory = (int)game.getMoveHistory().size();
+                bool oldCheck = game.isCheck();
+                bool oldMate = game.isCheckmate();
+                bool capture = game.getBoard().getPiece(row, col) != nullptr;
+
+                game.handleClick(row, col);
+
+                bool moveMade = (int)game.getMoveHistory().size() > oldHistory;
+
+                if (moveMade)
                 {
-                    Piece* p = game.board.getPiece(r, c);
+                    if (capture)
+                        PlaySound(captureSound);
+                    else
+                        PlaySound(moveSound);
 
-                    if (p &&p->getColor() == game.currentTurn)
-                    {
-                        selected = true;
-                        selectedPiece = p;
-                        sr = r;
-                        sc = c;
-                        GetMoves(p, r, c);
-                    }
-                }
+                    // only play check/checkmate sounds if they
+                    // just happened this move, not if they were already active
+                    if (!oldCheck && game.isCheck())
+                        PlaySound(checkSound);
 
-                // =============================================
-                // MOVE
-                // =============================================
-                else
-                {
-                    bool ok = false;
-
-                    for (auto& m : legalMoves)
-                    {
-                        if (m.first == r &&
-                            m.second == c)
-                        {
-                            ok = true;
-                        }
-                    }
-
-                    if (ok)
-                    {
-                        Piece* target = game.board.getPiece(r, c);
-                        // move
-                        game.board.movePiece(sr,sc,r,c);
-                        //pawn promotion
-                        Piece* moved = game.board.getPiece(r, c);
-
-                        if (moved)
-                        {
-                            char s = moved->getSymbol();
-
-                            if ((s == 'P' && r == 0) || (s == 'p' && r == 7))
-                            {
-                                promotionActive = true;
-                                promoRow = r;
-                                promoCol = c;
-                                promotionColor = moved->getColor();
-                            }
-                        }
-                        // move history
-                        char fromFile = 'a' + sc;
-                        char toFile = 'a' + c;
-
-                        int fromRank = 8 - sr;
-                        int toRank = 8 - r;
-
-                        std::string moveText = "";
-
-                        moveText += fromFile;
-                        moveText += std::to_string(fromRank);
-                        moveText += " -> ";
-                        moveText += toFile;
-                        moveText += std::to_string(toRank);
-
-                        moveHistory.push_back(moveText);
-
-                        // last move
-                        lastFromRow = sr;
-                        lastFromCol = sc;
-
-                        lastToRow = r;
-                        lastToCol = c;
-
-                        // sounds
-                        if (target)
-                            PlaySound(captureSound);
-                        else
-                            PlaySound(moveSound);
-
-                        // switch turn
-                        game.currentTurn =
-                            (game.currentTurn == 'W')
-                            ? 'B'
-                            : 'W';
-
-                        char enemy =
-                            game.currentTurn;
-
-                        check =
-                            game.board.isCheck(enemy);
-
-                        checkmate =
-                            game.board.isCheckmate(enemy);
-
-                        if (check)
-                            PlaySound(checkSound);
-
-                        if (checkmate)
-                            PlaySound(checkmateSound);
-                    }
-
-                    selected = false;
-                    selectedPiece = nullptr;
-
-                    legalMoves.clear();
+                    if (!oldMate && game.isCheckmate())
+                        PlaySound(checkmateSound);
                 }
             }
         }
 
-        // =====================================================
-        // DRAW
-        // =====================================================
         BeginDrawing();
 
         ClearBackground({ 20,18,16,255 });
 
-        // =====================================================
-        // BOARD
-        // =====================================================
         for (int r = 0; r < 8; r++)
         {
             for (int c = 0; c < 8; c++)
             {
-                Color col =
-                    ((r + c) % 2 == 0)
+                Color squareColor = ((r + c) % 2 == 0)
                     ? themes[currentTheme].light
                     : themes[currentTheme].dark;
 
-                DrawRectangle(
-                    c * TILE,
-                    r * TILE,
-                    TILE,
-                    TILE,
-                    col
-                );
+                DrawRectangle(c * TILE, r * TILE, TILE, TILE, squareColor);
             }
         }
 
-        // =====================================================
-        // LAST MOVE
-        // =====================================================
-        if (lastFromRow != -1)
+        // highlight the squares of the last move
+        if (game.getLastFromRow() != -1)
         {
-            DrawRectangle(
-                lastFromCol * TILE,
-                lastFromRow * TILE,
-                TILE,
-                TILE,
-                Color{ 255,255,0,80 }
-            );
-
-            DrawRectangle(
-                lastToCol * TILE,
-                lastToRow * TILE,
-                TILE,
-                TILE,
-                Color{ 255,215,0,120 }
-            );
+            DrawRectangle(game.getLastFromCol() * TILE, game.getLastFromRow() * TILE, TILE, TILE, { 255,255,0,80 });
+            DrawRectangle(game.getLastToCol() * TILE, game.getLastToRow() * TILE, TILE, TILE, { 255,215,0,120 });
         }
 
-        // =====================================================
-        // CHECK HIGHLIGHT
-        // =====================================================
-        if (check)
+        // flash the king red when he's in check
+        if (game.isCheck())
         {
             for (int r = 0; r < 8; r++)
             {
                 for (int c = 0; c < 8; c++)
                 {
-                    Piece* p =
-                        game.board.getPiece(r, c);
+                    Piece* p = game.getBoard().getPiece(r, c);
 
                     if (!p)
                         continue;
 
-                    if (p->getColor() == game.currentTurn)
+                    if (p->getColor() == game.getCurrentTurn())
                     {
                         char s = p->getSymbol();
 
                         if (s == 'K' || s == 'k')
-                        {
-                            DrawRectangle(
-                                c * TILE,
-                                r * TILE,
-                                TILE,
-                                TILE,
-                                Color{ 255,0,0,120 }
-                            );
-                        }
+                            DrawRectangle(c * TILE, r * TILE, TILE, TILE, { 255,0,0,120 });
                     }
                 }
             }
         }
 
-        // =====================================================
-        // LEGAL MOVES
-        // =====================================================
-        for (auto& m : legalMoves)
+        // dot = empty square, ring = enemy piece that can be captured
+        for (auto& move : game.getLegalMoves())
         {
-            Piece* target =
-                game.board.getPiece(
-                    m.first,
-                    m.second
-                );
+            Piece* target = game.getBoard().getPiece(move.first, move.second);
+
+            int x = move.second * TILE + 40;
+            int y = move.first * TILE + 40;
 
             if (target)
-            {
-                DrawCircleLines(
-                    m.second * TILE + 40,
-                    m.first * TILE + 40,
-                    22,
-                    RED
+                DrawRectangle(
+                    move.second * TILE,
+                    move.first * TILE,
+                    TILE,
+                    TILE,
+                    Color{ 255,0,0,120 }
                 );
-            }
             else
-            {
-                DrawCircle(
-                    m.second * TILE + 40,
-                    m.first * TILE + 40,
-                    12,
-                    Color{ 40,180,60,160 }
-                );
-            }
+                DrawCircle(x, y, 12, { 40,180,60,160 });
         }
 
-        // =====================================================
-        // PIECES
-        // =====================================================
         for (int r = 0; r < 8; r++)
         {
             for (int c = 0; c < 8; c++)
             {
-                Piece* p =
-                    game.board.getPiece(r, c);
+                Piece* p = game.getBoard().getPiece(r, c);
 
                 if (!p)
                     continue;
@@ -618,157 +295,94 @@ int main()
                 if (id < 0)
                     continue;
 
-                DrawTextureEx(
-                    pieceTex[id],
-                    {
-                        c * TILE + 5.0f,
-                        r * TILE + 5.0f
-                    },
-                    0.0f,
-                    0.6f,
-                    WHITE
-                );
+                DrawTextureEx(pieceTex[id], { c * TILE + 5.0f, r * TILE + 5.0f }, 0.0f, 0.6f, WHITE);
             }
         }
 
-        // =====================================================
-        // PANEL
-        // =====================================================
-        DrawRectangle(
-            BOARD,
-            0,
-            PANEL,
-            SCREEN_H,
-            Color{ 30,30,30,255 }
-        );
+        // side panel background
+        DrawRectangle(BOARD, 0, PANEL, SCREEN_H, { 30,30,30,255 });
 
-        // =====================================================
-        // TURN
-        // =====================================================
-        DrawText(
-            (game.currentTurn == 'W')
-            ? "WHITE TURN"
-            : "BLACK TURN",
-            BOARD + 20,
-            20,
-            30,
-            GOLD
-        );
+        DrawText((game.getCurrentTurn() == 'W') ? "WHITE TURN" : "BLACK TURN", BOARD + 20, 20, 30, GOLD);
 
-        // =====================================================
-        // CHECK
-        // =====================================================
-        if (check)
-        {
-            DrawText(
-                "CHECK!",
-                BOARD + 20,
-                60,
-                30,
-                RED
-            );
-        }
+        if (game.isCheck())
+            DrawText("CHECK!", BOARD + 20, 60, 30, RED);
 
-        // =====================================================
-        // MOVE HISTORY
-        // =====================================================
-        DrawText("MOVE HISTORY",BOARD + 20,110,24,GOLD);
+        DrawText("MOVE HISTORY", BOARD + 20, 110, 24, GOLD);
 
         int historyY = 145;
 
-        for (int i = 0;i < moveHistory.size();i++)
-        {
-            std::string text =
-                std::to_string(i + 1)
-                + ". "
-                + moveHistory[i];
+        const auto& history = game.getMoveHistory();
 
-            DrawText(text.c_str(),BOARD + 20,historyY,20,WHITE);
+        for (int i = 0; i < (int)history.size() && historyY <= 470; i++)
+        {
+            std::string move = std::to_string(i + 1) + ". " + history[i];
+
+            DrawText(move.c_str(), BOARD + 20, historyY, 20, WHITE);
 
             historyY += 28;
-
-            if (historyY > 470)
-                break;
         }
-
-        // =====================================================
-        // CLOCKS
-        // =====================================================
-        int whiteMin = (int)whiteTime / 60;
-        int whiteSec = (int)whiteTime % 60;
-
-        int blackMin = (int)blackTime / 60;
-        int blackSec = (int)blackTime % 60;
 
         char whiteClock[32];
         char blackClock[32];
 
-        sprintf_s(whiteClock,"White: %02d:%02d",whiteMin,whiteSec);
+        FormatClock(whiteClock, "White", whiteTime);
+        FormatClock(blackClock, "Black", blackTime);
 
-        sprintf_s(blackClock,"Black: %02d:%02d",blackMin,blackSec);
+        // brighten the active player's clock box
+        bool whiteTurn = (game.getCurrentTurn() == 'W');
 
-        DrawRectangle(BOARD + 20,520,240,50,(game.currentTurn == 'W')? Color{ 70,70,70,255 }: Color{ 40,40,40,255 });
+        DrawRectangle(BOARD + 20, 520, 240, 50, whiteTurn ? Color{ 70,70,70,255 } : Color{ 40,40,40,255 });
+        DrawRectangle(BOARD + 20, 590, 240, 50, !whiteTurn ? Color{ 70,70,70,255 } : Color{ 40,40,40,255 });
 
-        DrawRectangle(BOARD + 20,590,240,50,(game.currentTurn == 'B')? Color{ 70,70,70,255 }: Color{ 40,40,40,255 });
+        DrawText(whiteClock, BOARD + 35, 533, 28, WHITE);
+        DrawText(blackClock, BOARD + 35, 603, 28, WHITE);
 
-        DrawText(whiteClock,BOARD + 35,533,28,WHITE);
+        DrawText("BOARD THEMES", BOARD + 20, 690, 24, GOLD);
+        DrawText("1 - Classic", BOARD + 20, 730, 20, WHITE);
+        DrawText("2 - Green", BOARD + 20, 760, 20, WHITE);
+        DrawText("3 - Blue", BOARD + 20, 790, 20, WHITE);
+        DrawText("4 - Brown", BOARD + 160, 730, 20, WHITE);
+        DrawText("5 - Gray", BOARD + 160, 760, 20, WHITE);
 
-        DrawText(blackClock,BOARD + 35,603,28,WHITE);
-
-        // =====================================================
-        // THEMES
-        // =====================================================
-        DrawText("BOARD THEMES",BOARD + 20,690,24,GOLD);
-
-        DrawText("1 - Classic",BOARD + 20,730,20,WHITE);
-
-        DrawText("2 - Green",BOARD + 20,760,20,WHITE);
-
-        DrawText(
-            "3 - Blue",
-            BOARD + 20,
-            790,
-            20,
-            WHITE
-        );
-
-        DrawText(
-            "4 - Brown",
-            BOARD + 160,
-            730,
-            20,
-            WHITE
-        );
-
-        DrawText("5 - Gray",BOARD + 160,760,20,WHITE);
-        if (promotionActive)
+        if (game.isPromotionActive())
         {
-            DrawRectangle(0, 0, SCREEN_W, SCREEN_H, Color{ 0,0,0,180 });
+            DrawOverlay({ 0,0,0,180 });
 
-            DrawText("PAWN PROMOTION",
-                BOARD / 2 - 140, 200, 40, YELLOW);
+            DrawText("PAWN PROMOTION", BOARD / 2 - 140, 200, 40, YELLOW);
+            DrawText("1=Queen  2=Rook  3=Bishop  4=Knight", BOARD / 2 - 260, 280, 25, WHITE);
+        }
 
-            DrawText("Press: 1=Queen  2=Rook  3=Bishop  4=Knight",
-                BOARD / 2 - 260, 280, 25, WHITE);
+        if (game.isCheckmate())
+        {
+            DrawOverlay();
+
+            DrawText("CHECKMATE!", BOARD / 2 - 120, 250, 40, RED);
+            DrawText((game.getCurrentTurn() == 'W') ? "BLACK WINS" : "WHITE WINS", BOARD / 2 - 120, 320, 35, WHITE);
+            DrawText("Press R to play again", BOARD / 2 - 140, 390, 25, GRAY);
+        }
+
+        if (gameOverOnTime)
+        {
+            DrawOverlay();
+
+            DrawText(timeWinner.c_str(), BOARD / 2 - 170, 300, 35, GOLD);
+            DrawText("Press R to play again", BOARD / 2 - 140, 360, 25, GRAY);
         }
 
         EndDrawing();
     }
 
-    // =====================================================
-    // CLEANUP
-    // =====================================================
     for (int i = 0; i < 12; i++)
-    {
         UnloadTexture(pieceTex[i]);
-    }
 
     UnloadSound(moveSound);
     UnloadSound(captureSound);
     UnloadSound(checkSound);
     UnloadSound(checkmateSound);
+    UnloadSound(promotionSound);
 
     CloseAudioDevice();
+
     CloseWindow();
 
     return 0;

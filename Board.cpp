@@ -1,90 +1,109 @@
 #include "Board.h"
 #include "Piece.h"
 #include <iostream>
+#include <cmath>
 
-// Constructor initializes all grid cells to nullptr
-Board::Board() {
-    for (int row = 0; row < 8; row++) {
-        for (int col = 0; col < 8; col++) {
-            grid[row][col] = nullptr;
+Board::Board()
+{
+    for (int r = 0; r < 8; r++)
+        for (int c = 0; c < 8; c++)
+            grid[r][c] = nullptr;
+}
+
+Board::~Board()
+{
+    for (int r = 0; r < 8; r++)
+    {
+        for (int c = 0; c < 8; c++)
+        {
+            delete grid[r][c];
+            grid[r][c] = nullptr;
         }
     }
 }
 
-// Destructor deletes all pieces on the board to free memory
-Board::~Board() {
-    for (int row = 0; row < 8; row++) {
-        for (int col = 0; col < 8; col++) {
-            if (grid[row][col] != nullptr) {
-                delete grid[row][col];
-                grid[row][col] = nullptr;
-            }
-        }
-    }
-}
-
-// Returns the piece at (row, col), or nullptr if the square is empty
-Piece* Board::getPiece(int row, int col) const {
+Piece* Board::getPiece(int row, int col) const
+{
     if (!isInsideBoard(row, col))
         return nullptr;
+
     return grid[row][col];
 }
 
-// Places a piece at (row, col) directly (used for board setup)
-void Board::setPiece(int row, int col, Piece* piece) {
-
+void Board::setPiece(int row, int col, Piece* piece)
+{
     if (!isInsideBoard(row, col))
         return;
-    grid[row][col] = piece;
 
+    grid[row][col] = piece;
 }
 
-// Checks whether (row, col) is within the 8x8 board boundaries
-bool Board::isInsideBoard(int row, int col) const {
+bool Board::isInsideBoard(int row, int col) const
+{
     return row >= 0 && row < 8 && col >= 0 && col < 8;
 }
 
-// Attempts to move a piece, Returns true if the move was successful, false otherwise
-
-bool Board::movePiece(int Source_row, int source_col, int dest_row, int dest_col) {
-    if (!isInsideBoard(Source_row, source_col) || !isInsideBoard(dest_row, dest_col)) { // Checking that both squares are on the board
+bool Board::movePiece(int fromRow, int fromCol, int toRow, int toCol)
+{
+    if (!isInsideBoard(fromRow, fromCol) || !isInsideBoard(toRow, toCol))
         return false;
-    }
 
-    Piece* piece = grid[Source_row][source_col];
+    Piece* piece = grid[fromRow][fromCol];
 
-    // No piece at source square
-    if (piece == nullptr) {
+    if (!piece)
         return false;
-    }
 
-    // Can't capture your own piece
-    Piece* target = grid[dest_row][dest_col];
-    if (target != nullptr && target->getColor() == piece->getColor()) {
+    // can't capture your own piece
+    Piece* target = grid[toRow][toCol];
+    if (target && target->getColor() == piece->getColor())
         return false;
-    }
 
-    // Checking Valid Move
-    if (!piece->isValidMove(dest_row, dest_col, *this)) {
+    if (!piece->isValidMove(toRow, toCol, *this))
         return false;
+
+    // can't capture the king directly
+    if (target && (target->getSymbol() == 'K' || target->getSymbol() == 'k'))
+        return false;
+
+    // detect castling — king moving 2 squares sideways
+    char sym = piece->getSymbol();
+    bool isCastle = (sym == 'K' || sym == 'k') && abs(toCol - fromCol) == 2;
+
+    // perform the king's move
+    grid[toRow][toCol] = piece;
+    grid[fromRow][fromCol] = nullptr;
+    piece->setPosition(toRow, toCol);
+    piece->markMoved();
+
+    // move the rook to the other side of the king
+    if (isCastle)
+    {
+        int rookFromCol = (toCol > fromCol) ? 7 : 0; // kingside : queenside
+        int rookToCol = (toCol > fromCol) ? toCol - 1 : toCol + 1;
+
+        Piece* rook = grid[fromRow][rookFromCol];
+
+        grid[fromRow][rookToCol] = rook;
+        grid[fromRow][rookFromCol] = nullptr;
+
+        if (rook)
+        {
+            rook->setPosition(fromRow, rookToCol);
+            rook->markMoved();
+        }
     }
 
-    if (target != nullptr && (target->getSymbol() == 'K' || target->getSymbol() == 'k')) {
-        return false; // cannot capture king
-    }
-
-    // Move Performance
-    grid[dest_row][dest_col] = piece;
-    grid[Source_row][source_col] = nullptr;
-    piece->setPosition(dest_row, dest_col);
+    // mark the rook moved on a normal rook move too
+    if (sym == 'R' || sym == 'r')
+        piece->markMoved();
 
     return true;
 }
+
 bool Board::isCheck(char kingColor)
 {
     int kingRow = -1, kingCol = -1;
 
-    // Find king
     for (int r = 0; r < 8; r++)
     {
         for (int c = 0; c < 8; c++)
@@ -102,11 +121,11 @@ bool Board::isCheck(char kingColor)
         if (kingRow != -1) break;
     }
 
-    if (kingRow == -1) return false;
+    if (kingRow == -1)
+        return false;
 
     char enemy = (kingColor == 'W') ? 'B' : 'W';
 
-    // PURE ATTACK CHECK (NO isValidMove USED)
     for (int r = 0; r < 8; r++)
     {
         for (int c = 0; c < 8; c++)
@@ -123,62 +142,39 @@ bool Board::isCheck(char kingColor)
 
     return false;
 }
+
 bool Board::isCheckmate(char kingColor)
 {
-    // King must be in check first
     if (!isCheck(kingColor))
-    {
         return false;
-    }
 
-    // If in check and cannot escape, it is checkmate
-    if (!canEscapeCheck(kingColor))
-    {
-        return true;
-    }
-
-    return false;
+    return !canEscapeCheck(kingColor);
 }
 
 bool Board::canEscapeCheck(char kingColor)
 {
-    // Loop through every friendly piece
     for (int fromRow = 0; fromRow < 8; fromRow++)
     {
         for (int fromCol = 0; fromCol < 8; fromCol++)
         {
             Piece* piece = grid[fromRow][fromCol];
 
-            // Only consider pieces belonging to the player in check
-            if (piece == nullptr)
-            {
+            if (!piece || piece->getColor() != kingColor)
                 continue;
-            }
-            if (piece->getColor() != kingColor)
-            {
-                continue;
-            }
 
-            // Try every possible destination square
             for (int toRow = 0; toRow < 8; toRow++)
             {
                 for (int toCol = 0; toCol < 8; toCol++)
                 {
                     Piece* target = grid[toRow][toCol];
 
-                    // Cannot move to a square occupied by own piece
-                    if (target != nullptr && target->getColor() == kingColor)
-                    {
+                    if (target && target->getColor() == kingColor)
                         continue;
-                    }
 
-                    // Skip if the piece cannot legally move there
                     if (!piece->isValidMove(toRow, toCol, *this))
-                    {
                         continue;
-                    }
 
-                    // --- Simulate the move ---
+                    // simulate the move
                     grid[toRow][toCol] = piece;
                     grid[fromRow][fromCol] = nullptr;
                     int oldRow = piece->getRow();
@@ -187,18 +183,17 @@ bool Board::canEscapeCheck(char kingColor)
 
                     bool stillInCheck = isCheck(kingColor);
 
-                    // --- Undo the move ---
+                    // undo the move
                     grid[fromRow][fromCol] = piece;
                     grid[toRow][toCol] = target;
                     piece->setPosition(oldRow, oldCol);
 
                     if (!stillInCheck)
-                    {
-                        return true; // This move escapes the check
-                    }
+                        return true;
                 }
             }
         }
     }
-    return false; // No move found that escapes check
+
+    return false;
 }

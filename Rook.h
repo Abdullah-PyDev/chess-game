@@ -1,7 +1,8 @@
 #pragma once
 #include "Piece.h"
 
-class Rook : public Piece {
+class Rook : public Piece
+{
 public:
     Rook(char c, int row, int col);
 

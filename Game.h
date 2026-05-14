@@ -35,12 +35,15 @@ private:
     std::vector<std::string> moveHistory;
 
     std::vector<std::pair<int, int>> legalMoves;
+    std::vector<char> capturedByWhite;
+    std::vector<char> capturedByBlack;
 
 public:
 
     Game();
 
     void setupBoard();
+    void reset();
 
     void handleClick(int row, int col);
 
@@ -55,9 +58,7 @@ public:
 
     void promotePawn(int choice);
 
-    // =========================
-    // GETTERS
-    // =========================
+    // getters
 
     Board& getBoard();
 
@@ -85,4 +86,10 @@ public:
 
     const std::vector<std::pair<int, int>>&
         getLegalMoves() const;
+
+    const std::vector<char>& getCapturedByWhite() const;
+    const std::vector<char>& getCapturedByBlack() const;
+
+    int getCapturedPointsWhite() const;
+    int getCapturedPointsBlack() const;
 };

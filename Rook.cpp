@@ -2,14 +2,15 @@
 #include "Board.h"
 #include <cmath>
 
-Rook::Rook(char c, int row, int col)
-    : Piece(c, row, col) {
+Rook::Rook(char c, int row, int col) : Piece(c, row, col)
+{
 }
 
-char Rook::getSymbol() const {
-    // FIX: correct symbol
+char Rook::getSymbol() const
+{
     return (color == 'W') ? 'R' : 'r';
 }
+
 bool Rook::canAttack(int r, int c, const Board& board)
 {
     if (r != x && c != y)
@@ -32,56 +33,12 @@ bool Rook::canAttack(int r, int c, const Board& board)
 
     return true;
 }
-//bool Rook::isValidMove(int toRow, int toCol, const Board& board) const {
-//
-//    // Rook logic
-//    if (x!=toRow && y!=toCol)
-//        return false;
-//    int rowStep = 0;
-//    if (toRow > x)
-//        rowStep = 1;
-//    else
-//        rowStep = -1;
-//    //col
-//    int colStep = 0;
-//    if (toCol > y)
-//        colStep = 1;
-//    else
-//        colStep = -1;
-//
-//    // check if there are any pieces in the path from source to destination
-//    int r = x + rowStep;
-//    int c = y + colStep;
-//    // checks every box along the path to see if it has any piece or not
-//    //avoids jump
-//    while (r != toRow || c != toCol) {
-//
-//        // Piece blocking path
-//        if (board.getPiece(r, c) != nullptr)
-//            return false;
-//
-//        r += rowStep;
-//        c += colStep;
-//    }
-//
-//    //check if final destination is empty or not or it has any piece
-//    //makes a pointer to the final destination piece on the board
-//    Piece* destination = board.getPiece(toRow, toCol);
-//
-//    // returns true if final destination is empty
-//    if (destination == nullptr || destination->getColor() != color)
-//        //captured or final destination is empty
-//        return true;
-//    return false;
-//
-//
-//}
-bool Rook::isValidMove(int toRow, int toCol, const Board& board) const {
 
+bool Rook::isValidMove(int toRow, int toCol, const Board& board) const
+{
     if (x != toRow && y != toCol)
         return false;
 
-    // FIX: use else if so step stays 0 when axes match
     int rowStep = 0;
     if (toRow > x) rowStep = 1;
     else if (toRow < x) rowStep = -1;
@@ -93,15 +50,15 @@ bool Rook::isValidMove(int toRow, int toCol, const Board& board) const {
     int r = x + rowStep;
     int c = y + colStep;
 
-    while (r != toRow || c != toCol) {
+    while (r != toRow || c != toCol)
+    {
         if (board.getPiece(r, c) != nullptr)
             return false;
+
         r += rowStep;
         c += colStep;
     }
 
-    Piece* destination = board.getPiece(toRow, toCol);
-    if (destination == nullptr || destination->getColor() != color)
-        return true;
-    return false;
+    Piece* dest = board.getPiece(toRow, toCol);
+    return dest == nullptr || dest->getColor() != color;
 }
