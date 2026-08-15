@@ -11,12 +11,10 @@
 using namespace std;
 
 //white playes first
-Game::Game() : currentTurn('W') {
+Game::Game() : currentTurn('W'), enPassantRow(-1), enPassantCol(-1)
+{
     setupBoard();
-     
-    
 }
-
 void Game::setupBoard()
 {
     cout << "Setup called\n";
@@ -129,9 +127,33 @@ void Game::start()
             cout << "Not your piece!\n";
             continue;
         }
+		
+		bool isEnPassant = false;
+        char symbol = piece->getSymbol();
+
+        if (enPassantCol != -1)
+        {
+            if (symbol == 'P' &&          // white pawn
+                fromRow == 3 &&           // must be on row 3
+                toRow == 2 &&             // moving to row 2
+                toCol == enPassantCol &&  // same column as double moved pawn
+                enPassantRow == 3)        // double moved pawn is on row 3
+            {
+                isEnPassant = true;
+            }
+            else if (symbol == 'p' &&    // black pawn
+                fromRow == 4 &&          // must be on row 4
+                toRow == 5 &&            // moving to row 5
+                toCol == enPassantCol && // same column as double moved pawn
+                enPassantRow == 4)       // double moved pawn is on row 4
+            {
+                isEnPassant = true;
+            }
+        }
+
 
         // Invalid move
-        if (!piece->isValidMove(toRow, toCol, board))
+        if (!isEnPassant && !piece->isValidMove(toRow, toCol, board))
         {
             cout << "Invalid move!\n";
             continue;
@@ -140,6 +162,46 @@ void Game::start()
         // Move piece
         board.movePiece(fromRow, fromCol, toRow, toCol);
 		Piece* promotepawn = board.getPiece(toRow, toCol);
+
+int prevEpRow = enPassantRow;
+        int prevEpCol = enPassantCol;
+
+        // Reset en passant every move
+        enPassantRow = -1;
+        enPassantCol = -1;
+
+        // Perform the actual move
+        if (isEnPassant)
+        {
+            // Move the pawn to destination
+            board.setPiece(toRow, toCol, piece);
+            board.setPiece(fromRow, fromCol, nullptr);
+            piece->setPosition(toRow, toCol);
+
+            // Remove the captured pawn (still sitting beside)
+            Piece* capturedPawn = board.getPiece(prevEpRow, prevEpCol);
+            delete capturedPawn;
+            board.setPiece(prevEpRow, prevEpCol, nullptr);
+
+            cout << "En Passant capture!\n";
+        }
+        else
+        {
+            board.movePiece(fromRow, fromCol, toRow, toCol);
+
+            // Record en passant if pawn double moved
+            Piece* movedP = board.getPiece(toRow, toCol);
+            if (movedP != nullptr &&
+                (movedP->getSymbol() == 'P' || movedP->getSymbol() == 'p'))
+            {
+                if (abs(toRow - fromRow) == 2)
+                {
+                    enPassantRow = toRow;
+                    enPassantCol = toCol;
+                }
+            }
+        }
+		
 Piece* newpiece = nullptr;
 if (promotepawn != nullptr && promotepawn->getSymbol() == 'P' && toRow == 0) {
     cout << "Pawn Promotion, Select Piece: " << endl;
